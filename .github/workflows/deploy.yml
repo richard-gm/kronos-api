@@ -1,0 +1,101 @@
+# TODO: Cloud deployment pipeline
+#
+# This workflow is a placeholder for future CI/CD to GCP, AWS, or Modal.
+# Uncomment and fill in the relevant section when you're ready to deploy.
+#
+# Recommended options (in order of simplicity):
+#   1. Modal      — serverless GPU, pay-per-second, no infra to manage
+#   2. GCP        — Cloud Run (CPU) or GKE (GPU), tight Docker integration
+#   3. AWS        — ECS Fargate (CPU) or EC2 with GPU (g4dn.xlarge ~$0.53/hr)
+#
+# Before enabling any section below:
+#   - Add the required secrets in GitHub → Settings → Secrets and variables → Actions
+#   - Update the image name / project ID / region for your account
+#   - Change docker-compose platform to linux/amd64 for cloud targets
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:   # allow manual trigger from GitHub UI
+
+jobs:
+
+  # ── Option 1: Modal (serverless GPU) ────────────────────────────────────────
+  # TODO: uncomment when ready
+  #
+  # deploy-modal:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-python@v5
+  #       with: { python-version: "3.11" }
+  #     - run: pip install modal
+  #     - run: modal deploy app/modal_app.py   # TODO: create modal_app.py
+  #       env:
+  #         MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+  #         MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+
+  # ── Option 2: GCP Cloud Run ──────────────────────────────────────────────────
+  # TODO: uncomment when ready
+  # Required secrets: GCP_SA_KEY, GCP_PROJECT_ID
+  #
+  # deploy-gcp:
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/kronos-api:${{ github.sha }}
+  #     REGION: europe-west2
+  #     SERVICE: kronos-api
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: google-github-actions/auth@v2
+  #       with:
+  #         credentials_json: ${{ secrets.GCP_SA_KEY }}
+  #     - uses: google-github-actions/setup-gcloud@v2
+  #     - run: gcloud auth configure-docker --quiet
+  #     - run: docker build --platform linux/amd64 -t $IMAGE .
+  #     - run: docker push $IMAGE
+  #     - run: |
+  #         gcloud run deploy $SERVICE \
+  #           --image $IMAGE \
+  #           --region $REGION \
+  #           --platform managed \
+  #           --memory 6Gi \
+  #           --cpu 4 \
+  #           --timeout 600 \
+  #           --set-env-vars "KRONOS_MODEL=NeoQuasar/Kronos-small" \
+  #           --set-secrets "API_KEY=kronos-api-key:latest,ALPACA_API_KEY=alpaca-key:latest" \
+  #           --no-allow-unauthenticated
+
+  # ── Option 3: AWS ECS Fargate ────────────────────────────────────────────────
+  # TODO: uncomment when ready
+  # Required secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_ACCOUNT_ID
+  #
+  # deploy-aws:
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     AWS_REGION: eu-west-2
+  #     ECR_REPO: kronos-api
+  #     ECS_CLUSTER: kronos-cluster
+  #     ECS_SERVICE: kronos-service
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #         aws-region: ${{ env.AWS_REGION }}
+  #     - id: login-ecr
+  #       uses: aws-actions/amazon-ecr-login@v2
+  #     - run: |
+  #         IMAGE=${{ steps.login-ecr.outputs.registry }}/$ECR_REPO:${{ github.sha }}
+  #         docker build --platform linux/amd64 -t $IMAGE .
+  #         docker push $IMAGE
+  #         # TODO: update ECS task definition and trigger service update
+
+  # ── Placeholder job (keeps workflow valid until a real job is uncommented) ───
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No deployment target configured yet. See TODO comments above."
