@@ -7,6 +7,18 @@ stdlib). PYTHONPATH=/app ensures 'kronos_src' is importable.
 """
 
 import sys
+import os
+
+os.environ["HF_HUB_DISABLE_SSL_VERIFY"] = "1"
+
+import httpx
+from huggingface_hub.utils._http import set_client_factory
+
+def _insecure_client_factory():
+    return httpx.Client(verify=False)
+
+set_client_factory(_insecure_client_factory)
+
 import logging
 import pandas as pd
 import numpy as np
@@ -14,10 +26,8 @@ from datetime import timedelta
 
 logger = logging.getLogger(__name__)
 
-# Kronos is not a PyPI package — it's vendored into the image at build time
 sys.path.insert(0, "/app")
-from kronos_src import Kronos, KronosTokenizer, KronosPredictor  # noqa: E402
-
+from model import Kronos, KronosTokenizer, KronosPredictor
 
 class KronosModel:
     """Singleton — model is loaded once at startup and reused for all requests."""
@@ -45,16 +55,15 @@ class KronosModel:
         Returns a dict with: ticker, predicted_return (%), signal, confidence,
         last_close, predicted_close, pred_days.
         """
-        x_timestamps = df.index.tolist()
         # Use business-day offsets so Kronos sees realistic future dates
-        y_timestamps = list(
-            pd.bdate_range(start=df.index[-1] + timedelta(days=1), periods=pred_days)
+        y_timestamps = pd.bdate_range(
+            start=df.index[-1] + timedelta(days=1), periods=pred_days
         )
 
         pred_df = self.predictor.predict(
             df=df,
-            x_timestamp=x_timestamps,
-            y_timestamp=y_timestamps,
+            x_timestamp=df.index.to_series(),
+            y_timestamp=y_timestamps.to_series(),
             pred_len=pred_days,
             T=1.0,
             top_p=0.9,

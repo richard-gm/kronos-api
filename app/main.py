@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI):
     ~10-second model load penalty.
     """
     settings.validate()
-    KronosModel.load(settings.kronos_model, settings.kronos_tokenizer)
+    await asyncio.to_thread(KronosModel.load, settings.kronos_model, settings.kronos_tokenizer)
     yield  # app serves requests between yield and shutdown
 
 

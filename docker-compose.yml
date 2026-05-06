@@ -7,14 +7,18 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      - HF_HUB_DISABLE_SSL_VERIFY=1
     volumes:
+      # Mount local model files to bypass download
+      - ./models:/models
       # Model weights persist here across rebuilds — first run downloads ~600 MB
       - hf-cache:/cache/huggingface
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          # Kronos-small needs ~2-3 GB; 6 GB gives comfortable headroom
+          # mini: ~1 GB, small: ~2 GB, base: ~2-3 GB
           memory: 6G
 
 volumes:

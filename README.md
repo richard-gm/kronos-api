@@ -19,6 +19,9 @@ Scores are stored in a `kronos_scores` Supabase table and read by the [options-t
 ## Quick start
 
 ```bash
+# 0. Download model files (~530 MB total)
+./scripts/download-models.sh
+
 # 1. Apply schema to your Supabase project (SQL Editor)
 #    → paste contents of schema.sql
 
@@ -51,15 +54,34 @@ See `.env.example` for the full list. Required:
 | `SUPABASE_ANON_KEY` | Supabase anon key |
 | `PORTFOLIO_TICKERS` | Comma-separated tickers to score |
 
-## Kronos model options
+## Model configuration
 
-| Model | Params | RAM | ~Time (20 stocks, CPU) |
-|---|---|---|---|
-| `NeoQuasar/Kronos-mini` | 4.1M | ~1 GB | ~3 min |
-| `NeoQuasar/Kronos-small` | 24.7M | ~2 GB | ~8 min |
-| `NeoQuasar/Kronos-base` | 102.3M | ~4 GB | ~30 min |
+### Using local model files (recommended)
 
-Model weights are downloaded from HuggingFace on first run (~600 MB) and cached in a Docker volume — subsequent starts are instant.
+Model files are stored locally to avoid SSL certificate issues in Docker on macOS. Three model sizes are available:
+
+```bash
+models/
+├── tokenizer/      # ~15 MB
+├── kronos-mini/   # ~16 MB  (4M params, fastest)
+├── kronos-small/  # ~97 MB (25M params, recommended)
+└── kronos-base/   # ~401 MB (102M params, best accuracy)
+```
+
+Switch models by updating `.env`:
+```bash
+KRONOS_MODEL=/models/kronos-base   # Best accuracy, ~30 min for 20 stocks
+KRONOS_MODEL=/models/kronos-small # Recommended balance
+KRONOS_MODEL=/models/kronos-mini   # Fastest, ~3 min
+```
+
+### Model sizes
+
+| Model | Params | Disk | RAM | ~Time (20 stocks, CPU) |
+|---|---|---|---|---|
+| `/models/kronos-mini` | 4.1M | ~16 MB | ~1 GB | ~3 min |
+| `/models/kronos-small` | 24.7M | ~97 MB | ~2 GB | ~8 min |
+| `/models/kronos-base` | 102.3M | ~401 MB | ~2-3 GB | ~30 min |
 
 ## Platform compatibility
 

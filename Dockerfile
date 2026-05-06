@@ -1,7 +1,7 @@
 # ── Stage 1: builder ─────────────────────────────────────────────────────────
 # Installs build tools and Python deps into a prefix dir.
 # Nothing from this stage reaches the final image except /install and /kronos/model.
-FROM python:3.11-slim AS builder
+FROM python:3.11 AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential git \
@@ -19,18 +19,19 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # ── Stage 2: final runtime ────────────────────────────────────────────────────
-# Slim image with only what the server needs at runtime.
-FROM python:3.11-slim AS final
+# Full image with everything needed for SSL verification.
+FROM python:3.11 AS final
 
 # curl for the HEALTHCHECK only
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
+    && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Python packages (no compilers, no git)
 COPY --from=builder /install /usr/local
 
 # Kronos model package (renamed to avoid shadowing stdlib 'model')
-COPY --from=builder /kronos/model /app/kronos_src
+COPY --from=builder /kronos/model /app/model
 
 WORKDIR /app
 
@@ -39,8 +40,10 @@ COPY app/ ./app/
 
 ENV PYTHONPATH=/app \
     PYTHONUNBUFFERED=1 \
-    # HuggingFace weights land here; mount a volume to persist across rebuilds
-    HF_HOME=/cache/huggingface
+    HF_HOME=/cache/huggingface \
+    HF_HUB_DISABLE_SSL_VERIFY=1 \
+    REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
+    CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
 EXPOSE 8000
 

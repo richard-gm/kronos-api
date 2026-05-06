@@ -6,3 +6,12 @@ __pycache__/
 .mypy_cache/
 dist/
 *.egg-info/
+
+# Local model files (download from HuggingFace instead)
+models/
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
