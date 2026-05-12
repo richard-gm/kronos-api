@@ -81,6 +81,11 @@ class KronosModel:
         else:
             signal = "NEUTRAL"
 
+        # Volume spike: compare Kronos-predicted volume to 20-day historical average
+        avg_volume = float(df["volume"].tail(20).mean())
+        predicted_volume = float(pred_df["volume"].iloc[-1]) if "volume" in pred_df.columns else 0.0
+        volume_spike_ratio = round(predicted_volume / avg_volume, 2) if avg_volume > 0 else 1.0
+
         return {
             "ticker": ticker,
             "predicted_return": round(predicted_return, 2),
@@ -89,4 +94,5 @@ class KronosModel:
             "last_close": round(last_close, 2),
             "predicted_close": round(predicted_close, 2),
             "pred_days": pred_days,
+            "volume_spike_ratio": volume_spike_ratio,
         }

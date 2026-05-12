@@ -28,6 +28,7 @@ async def write_scores(scores: list[dict], url: str, key: str) -> None:
             "last_close": s["last_close"],
             "predicted_close": s["predicted_close"],
             "pred_days": s["pred_days"],
+            "volume_spike_ratio": s.get("volume_spike_ratio"),
             "run_at": run_at,
         }
         for s in scores
