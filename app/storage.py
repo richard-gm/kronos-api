@@ -14,6 +14,21 @@ def get_client(url: str, key: str) -> Client:
     return _client
 
 
+async def fetch_portfolio_tickers(url: str, key: str) -> list[str]:
+    """
+    Returns the list of tickers to score from the portfolio_tickers Supabase table.
+    Falls back to an empty list on any error so the caller can decide what to do.
+    """
+    try:
+        client = get_client(url, key)
+        res = client.table("portfolio_tickers").select("ticker").execute()
+        if res.data:
+            return [row["ticker"] for row in res.data]
+    except Exception as e:
+        logger.error(f"fetch_portfolio_tickers failed: {e}")
+    return []
+
+
 async def write_scores(scores: list[dict], url: str, key: str) -> None:
     if not scores:
         return

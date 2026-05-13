@@ -23,7 +23,7 @@ from app.auth import validate_api_key
 from app.config import settings
 from app.data import fetch_ohlcv
 from app.kronos_model import KronosModel
-from app.storage import write_scores
+from app.storage import fetch_portfolio_tickers, write_scores
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -81,7 +81,13 @@ async def _run_portfolio_background() -> None:
     model = KronosModel.load(settings.kronos_model, settings.kronos_tokenizer)
     results, errors = [], []
 
-    for ticker in settings.portfolio_tickers:
+    # Read tickers from Supabase; fall back to env var list if table is empty
+    tickers = await fetch_portfolio_tickers(settings.supabase_url, settings.supabase_anon_key)
+    if not tickers:
+        logger.warning("portfolio_tickers table empty or unreachable — falling back to PORTFOLIO_TICKERS env var")
+        tickers = settings.portfolio_tickers
+
+    for ticker in tickers:
         try:
             df = await fetch_ohlcv(
                 ticker, settings.lookback_days,
@@ -149,8 +155,10 @@ async def score_portfolio(background_tasks: BackgroundTasks):
     - The client should not be blocked waiting for the result.
     """
     background_tasks.add_task(_run_portfolio_background)
+    # Show the live ticker list so callers know what will be scored
+    live_tickers = await fetch_portfolio_tickers(settings.supabase_url, settings.supabase_anon_key)
     return {
         "status": "queued",
-        "tickers": settings.portfolio_tickers,
+        "tickers": live_tickers or settings.portfolio_tickers,
         "message": "Inference running in background. Refresh in a few minutes.",
     }
